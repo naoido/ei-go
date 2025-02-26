@@ -1,6 +1,6 @@
 import requests
 
-text = "The answer is."
+text = "The answer is"
 lang = "en"
 
 url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang}&q={text}&client=tw-ob"
