@@ -231,12 +231,12 @@ void WebSocketChat::handleNewConnection(
 
     try
     {
-        Json::Value res;
-        res["type"] = "gameJoined";
-        res["playerId"] = player_id;
+        Json::Value json_res;
+        json_res["type"] = "gameJoined";
+        json_res["playerId"] = player_id;
 
         int idx = 0;
-        for (const auto player & : room->players)
+        for (const auto player : room->players)
         {
             json_res["users"][idx]["id"] = player.second->id;
             json_res["users"][idx]["id"] = player.second->name;
@@ -245,15 +245,15 @@ void WebSocketChat::handleNewConnection(
             idx++;
         }
 
-        conn->send(json_stringify(res));
+        conn->send(json_stringify(json_res));
     }
     catch (...)
     {
-        Json::Value res;
-        res["type"] = "joinFailed";
-        res["err"] = "TODO Err";
+        Json::Value json_res;
+        json_res["type"] = "joinFailed";
+        json_res["err"] = "TODO Err";
 
-        conn->send(json_stringify(res));
+        conn->send(json_stringify(json_res));
         conn->shutdown();
     }
 
