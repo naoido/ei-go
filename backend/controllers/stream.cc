@@ -47,6 +47,16 @@ void WebSocketChat::handleNewMessage(
                 {
                     json_res["isUpdated"] = false;
                 }
+
+                json_res["type"] = "update";
+                json_res["playerId"] = s.player_id;
+                json_res["name"] = room->players[s.player_id]->name;
+
+                std::string str_res = json_stringify(json_res);
+
+                for (const auto &player : room->players)
+                    ps_service.publish(player.second->id, str_res);
+
                 room->mtx.unlock();
                 ps_service.publish(s.player_id, json_stringify(json_res));
             }
@@ -67,6 +77,16 @@ void WebSocketChat::handleNewMessage(
                 catch (...)
                 {
                 }
+
+                json_res["type"] = "update";
+                json_res["playerId"] = s.player_id;
+                json_res["is_ready"] = room->players[s.player_id]->is_ready;
+
+                std::string str_res = json_stringify(json_res);
+
+                for (const auto &player : room->players)
+                    ps_service.publish(player.second->id, str_res);
+
                 room->mtx.unlock();
                 ps_service.publish(s.player_id, json_stringify(json_res));
             }
@@ -76,7 +96,9 @@ void WebSocketChat::handleNewMessage(
             Json::Value json_res;
             json_res["type"] = "question";
 
-            if (room->state == GameState::Ready && room->isAllPlayersReady())
+            std::string admin_token = json_req["admin_token"].asCString();
+
+            if (room->state == GameState::Ready && room->isAllPlayersReady() && admin_token == room->admin_token)
             {
                 room->mtx.lock();
                 room->state = GameState::AcceptingAnswers;
@@ -175,6 +197,8 @@ void WebSocketChat::handleNewMessage(
             Json::Value json_res;
             json_res["type"] = "finish";
 
+            std::string admin_token = json_req["admin_token"].asCString();
+
             if (room->state == GameState::Ready && admin_token == room->admin_token)
             {
                 std::string str_res = json_stringify(json_res);
@@ -209,6 +233,16 @@ void WebSocketChat::handleNewConnection(
         res["type"] = "gameJoined";
         res["playerId"] = player_id;
 
+        int idx = 0;
+        for (const auto player & : room->players)
+        {
+            json_res["users"][idx]["id"] = player.second->id;
+            json_res["users"][idx]["id"] = player.second->name;
+            json_res["users"][idx]["id"] = player.second->is_ready;
+
+            idx++;
+        }
+
         conn->send(json_stringify(res));
     }
     catch (...)
@@ -232,6 +266,18 @@ void WebSocketChat::handleNewConnection(
     LOGGER("Stream", "sub ok. sub_id: " << s.sub_id);
 
     conn->setContext(std::make_shared<Subscriber>(std::move(s)));
+
+    Json::Value json_res;
+    json_res["type"] = "new_player";
+    json_res["playerId"] = s.player_id;
+    json_res["name"] = room->players[s.player_id]->name;
+    json_res["is_ready"] = room->players[s.player_id]->is_ready;
+
+    std::string str_res = json_stringify(json_res);
+
+    for (const auto &player : room->players)
+        if (player.first != s.player_id)
+            ps_service.publish(player.first, str_res);
 }
 
 void WebSocketChat::handleConnectionClosed(const WebSocketConnectionPtr &conn)
