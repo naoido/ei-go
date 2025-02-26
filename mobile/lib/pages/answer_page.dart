@@ -6,7 +6,11 @@ import 'package:eigo/utils/websocket_manager.dart';
 import 'package:flutter/material.dart';
 
 class AnswerPage extends StatefulWidget {
-  const AnswerPage({super.key});
+  final String word;
+  final String username;
+  final int round;
+
+  const AnswerPage({super.key, required this.word, required this.username, required this.round});
 
   @override
   State<StatefulWidget> createState() => _AnswerPageState();
@@ -20,12 +24,10 @@ class _AnswerPageState extends State<AnswerPage> {
   final List<String> _statusMessages = ["回答する", "待機中"];
   final List<String> _resultMessages = ["回答待ち", "判定中", "成功！", "失敗"];
   int rank = 1;
-  int round = 1;
   bool _waiting = false;
   bool? _result;
   String _resultMessage = "回答まち";
   String _status = "回答する";
-  String _word = "like";
 
   void _closeKeyboard() {
     final currentScope = FocusScope.of(context);
@@ -75,13 +77,10 @@ class _AnswerPageState extends State<AnswerPage> {
             if (_result ?? false) _confettiController.play();
             _resultMessage = _result ?? false ? _resultMessages[2]: _resultMessages[3];
           });
-          await Future.delayed(Duration(seconds: 1));
+          await Future.delayed(Duration(seconds: 3));
 
           setState(() {
             _status = _statusMessages[0];
-
-            var words = ["like", "go", "eat", "flutter"];
-            _word = words[Random().nextInt(words.length)];
 
             _textEditController.text = "";
             _confettiController.stop();
@@ -91,12 +90,15 @@ class _AnswerPageState extends State<AnswerPage> {
             _waiting = false;
           });
 
-          round++;
-
-          if (round >= 5) {
+          if (widget.round >= 4) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => ResultPage())
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => AnswerPage(word: widget.word, username: widget.username, round: widget.round + 1))
             );
           }
         },
@@ -160,6 +162,17 @@ class _AnswerPageState extends State<AnswerPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        Text(
+                          "ラウンド: ${widget.round + 1}/5",
+                          style: TextStyle(
+                              fontSize: 20
+                          ),
+                        )
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
                         Icon(
                           Icons.emoji_events,
                           size: 40,
@@ -175,7 +188,7 @@ class _AnswerPageState extends State<AnswerPage> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          "naoido",
+                          widget.username,
                           style: TextStyle(
                               fontSize: 20
                           ),
@@ -183,7 +196,7 @@ class _AnswerPageState extends State<AnswerPage> {
                       ],
                     ),
                     Text(
-                      "今回のお題: $_word",
+                      "今回のお題: ${widget.word}",
                       style: TextStyle(
                           fontSize: 18
                       ),
@@ -223,11 +236,11 @@ class _AnswerPageState extends State<AnswerPage> {
                   confettiController: _confettiController,
                   particleDrag: 0.02,
                   blastDirection: -pi / 2,
-                  emissionFrequency: 0.05,
-                  numberOfParticles: 40,
-                  maxBlastForce: 130,
+                  emissionFrequency: 0.1,
+                  numberOfParticles: 20,
+                  maxBlastForce: 90,
                   minBlastForce: 30,
-                  gravity: 0.3,
+                  gravity: 0.6,
                   colors: const [Colors.red, Colors.blue, Colors.green, Colors.orange],
                 ),
               ),

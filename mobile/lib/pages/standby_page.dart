@@ -61,7 +61,7 @@ class _StandbyPageState extends State<StandbyPage> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => AnswerPage()
+                        builder: (context) => AnswerPage(word: "Swift", username: _controller.text, round: 0)
                       )
                     );
                   },
