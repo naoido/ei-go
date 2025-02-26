@@ -3,26 +3,28 @@ version: "3.8"
 services:
   nginx:
     build: 
-      context: ./docker/nginx
+      context: ./web
     ports:
       - "80:80"
     depends_on:
-      - fastapi
       - dragon
     networks:
       - app_network
 
-  fastapi:
-    build: ./docker/voice
-    ports:
-      - "8080:8080"
-    networks:
-      - app_network
+  # fastapi:
+  #   build: ./docker/voice
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - app_network
 
   dragon:
-    build: .docker/dragon
+    build:
+      context: ./backend
     ports:
       - "5173:5173"
+    environment:
+      - GEMINI_API_KEY=AIzaSyB6K-cE4foMusppkUQPh9g_UmORlrKnrew
     networks:
       - app_network
 
