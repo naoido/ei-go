@@ -1,6 +1,6 @@
 #include "gemini.h"
 
-const std::string API_KEY = "AIzaSyB6K-cE4foMusppkUQPh9g_UmORlrKnrew";
+const std::string API_KEY = std::getenv("GEMINI_API_KEY");
 const std::string GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
 
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, std::string *output)
