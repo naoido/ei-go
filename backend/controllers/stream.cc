@@ -235,15 +235,29 @@ void WebSocketChat::handleNewConnection(
     const HttpRequestPtr &req,
     const WebSocketConnectionPtr &conn)
 {
-    std::string room_id;
-    std::string player_id;
+    std::string room_id = req->getParameter("roomId");
+    std::string player_id = req->getParameter("playerId");
     std::shared_ptr<Room> room;
+
+    bool is_reconnection = false;
 
     try
     {
-        req->getParameter("roomId");
         room = Room::get(room_id);
-        player_id = room->join();
+
+        /* #-#-#-#-#-# Reconnection process #-#-#-#-#-# */
+        if (player_id != "")
+        {
+            if (!room->players.count(player_id))
+            {
+                ERR_LOGGER("Stream", "non-existent player_id -> " << player_id);
+                throw "";
+            }
+
+            is_reconnection = true;
+        }
+        else
+            player_id = room->join();
 
         Json::Value json_res;
         json_res["type"] = "gameJoined";
@@ -264,18 +278,20 @@ void WebSocketChat::handleNewConnection(
         conn->send(json_stringify(json_res));
 
         /* #-#-#-#-#-#  Notify other players  #-#-#-#-#-# */
+        if (!is_reconnection)
+        {
+            Json::Value global_dispatch;
+            global_dispatch["type"] = "new_player";
+            global_dispatch["playerId"] = player_id;
+            global_dispatch["name"] = room->players[player_id]->name;
+            global_dispatch["is_ready"] = room->players[player_id]->is_ready;
 
-        Json::Value global_dispatch;
-        global_dispatch["type"] = "new_player";
-        global_dispatch["playerId"] = player_id;
-        global_dispatch["name"] = room->players[player_id]->name;
-        global_dispatch["is_ready"] = room->players[player_id]->is_ready;
+            std::string str_global_dispatch = json_stringify(global_dispatch);
 
-        std::string str_global_dispatch = json_stringify(global_dispatch);
-
-        for (const auto &player : room->players)
-            if (player.first != player_id)
-                ps_service.publish(player.first, str_global_dispatch);
+            for (const auto &player : room->players)
+                if (player.first != player_id)
+                    ps_service.publish(player.first, str_global_dispatch);
+        }
     }
     catch (...)
     {
@@ -310,6 +326,27 @@ void WebSocketChat::handleConnectionClosed(const WebSocketConnectionPtr &conn)
         {
             ps_service.unsubscribe(s.player_id, s.sub_id);
             WARN_LOGGER("Stream", "Disconnected. \n  >> room_id: " << s.room_id << "\n  >> player_id: " << s.player_id);
+
+            if (s.room_id != "")
+            {
+                std::shared_ptr<Room> room = Room::get(s.room_id);
+
+                if (room->players.count(s.player_id))
+                {
+                    room->players[s.player_id]->is_ready = false;
+
+                    Json::Value global_dispatch;
+                    global_dispatch["type"] = "update";
+                    global_dispatch["playerId"] = s.player_id;
+                    global_dispatch["is_ready"] = false;
+
+                    std::string str_global_dispatch = json_stringify(global_dispatch);
+
+                    for (const auto &player : room->players)
+                        if (player.first != s.player_id)
+                            ps_service.publish(player.first, str_global_dispatch);
+                }
+            }
         }
     }
     catch (...)
