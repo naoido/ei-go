@@ -5,12 +5,12 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService();
   late final WebSocketChannel _channel;
-  final String _wsUrl = "wss://hackz.naoido.com/ws";
+  final String _wsUrl = "wss://hackz.naoido.com/ws?roomId=";
 
   factory WebSocketService() => _instance;
 
   Future initialize(String roomId) async {
-    _channel = WebSocketChannel.connect(Uri.parse(_wsUrl));
+    _channel = WebSocketChannel.connect(Uri.parse(_wsUrl + roomId));
     await _channel.ready;
   }
 

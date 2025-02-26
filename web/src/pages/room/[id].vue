@@ -63,21 +63,36 @@ const title = ref("Swift");
 const round = ref(1);
 
 //** WEBSOCKET */
-const wsUrl = "ws://localhost:8080/ws";
+const wsUrl = `wss://hackz.naoido.com/ws?roomId=${id}`;
 const ws = ref<WebSocket | null>(null);
-const messages = ref<string[]>([]);
 
 const connectWebSocket = () => {
   ws.value = new WebSocket(wsUrl);
 
   ws.value.onopen = () => {
     console.log("WebSocket 接続成功");
-    sendMessage("hello");
     isLoading.value = false;
   };
 
   ws.value.onmessage = (event: MessageEvent<string>) => {
-    messages.value.push(event.data);
+    const data = JSON.parse(event.data);
+    switch (data["type"]) {
+      // TODO: 各レスポンス処理を実装する
+      case "":
+        
+        break;
+      case "":
+
+        break;
+      case "":
+        // 次のラウンドに移行
+        setAnswer(null);
+        isLoading.value = false;
+        title.value = ""; // TODO: レスポンスの値を入れるようにする
+        break;
+      default:
+        break;
+    }
   };
 
   ws.value.onclose = () => {
@@ -96,6 +111,12 @@ const sendMessage = (value: string) => {
     console.warn("WebSocket が接続されていません");
   }
 };
+
+const next = async () => {
+  await sleep(3000);
+  sendMessage('{"type": "ready"}');
+  isLoading.value = true;
+}
 
 onMounted(() => {
   connectWebSocket();
