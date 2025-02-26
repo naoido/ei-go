@@ -15,6 +15,7 @@ public:
     std::string name;
     bool is_ready;
 
+    Player();
 
 private:
     static std::map<std::string, std::shared_ptr<Player>> player;
