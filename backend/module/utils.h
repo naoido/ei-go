@@ -2,6 +2,9 @@
 
 #include <chrono>
 #include <string>
+#include <iostream>
+
+#include "logger.h"
 
 namespace Utils
 {
