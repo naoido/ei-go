@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:eigo/pages/result_page.dart';
+import 'package:eigo/utils/websocket_manager.dart';
 import 'package:flutter/material.dart';
 
 class AnswerPage extends StatefulWidget {
@@ -11,6 +12,7 @@ class AnswerPage extends StatefulWidget {
 }
 
 class _AnswerPageState extends State<AnswerPage> {
+  final _websocket = WebSocketService();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _controller = TextEditingController();
   final List<String> _statusMessages = ["回答する", "待機中"];
