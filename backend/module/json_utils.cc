@@ -1,0 +1,22 @@
+#include "json.h"
+
+Json::Value* json_parse(Json::Value &root, const std::string &message) {
+  try {
+    Json::CharReaderBuilder builder;
+    builder["collectComments"] = true;
+    JSONCPP_STRING errs;
+    auto reader = builder.newCharReader();
+    if (!reader->parse(message.c_str(), message.cend().base(), &root, &errs)) {
+      throw "TODO Err";
+    }
+    return &root;
+  } catch (...) {
+    throw "TODO Err";
+  }
+}
+
+std::string json_stringify(Json::Value &root) {
+  Json::StreamWriterBuilder builder;
+  builder["indentation"] = "";
+  return Json::writeString(builder, root);
+};
