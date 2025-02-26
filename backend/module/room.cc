@@ -20,6 +20,8 @@ std::shared_ptr<Room> Room::create()
 
     rooms[room_id] = room;
 
+    LOGGER("Room", "created room: " << room->id);
+
     return room;
 }
 
@@ -27,15 +29,16 @@ std::string Room::join()
 {
     std::shared_ptr<Player> player(new Player);
     players[player->id] = player;
-    question->players_answer[player->id] = "";
 
     return player->id;
 }
 
 std::shared_ptr<Room> Room::get(const std::string &room_id)
 {
-    if (!(rooms.count(room_id)))
+    if (!(rooms.count(room_id))) {
+        ERR_LOGGER("Room", "invalid id");
         throw "TODO Err";
+    }
 
     return rooms[room_id];
 }

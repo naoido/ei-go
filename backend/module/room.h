@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "player.h"
 #include "question.h"
+#include "logger.h"
 
 typedef std::string RoomId;
 
@@ -30,7 +31,6 @@ public:
     std::map<std::string, std::shared_ptr<Player>> players;
     std::string admin_token;
     std::mutex mtx;
-
 
     static std::shared_ptr<Room> create();    
     static std::shared_ptr<Room> get(const std::string& room_id);
