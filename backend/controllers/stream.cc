@@ -173,6 +173,8 @@ void WebSocketChat::handleNewMessage(
                             Json::Value json_res;
                             json_res["type"] = "finish";
 
+                            std::string admin_token = json_req["admin_token"].asCString();
+
                             if (room->state == GameState::Ready && admin_token == room->admin_token)
                             {
                                 std::string str_res = json_stringify(json_res);
