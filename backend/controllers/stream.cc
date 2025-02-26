@@ -239,8 +239,8 @@ void WebSocketChat::handleNewConnection(
         for (const auto player : room->players)
         {
             json_res["users"][idx]["id"] = player.second->id;
-            json_res["users"][idx]["id"] = player.second->name;
-            json_res["users"][idx]["id"] = player.second->is_ready;
+            json_res["users"][idx]["name"] = player.second->name;
+            json_res["users"][idx]["is_ready"] = player.second->is_ready;
 
             idx++;
         }
@@ -271,14 +271,14 @@ void WebSocketChat::handleNewConnection(
 
     Json::Value json_res;
     json_res["type"] = "new_player";
-    json_res["playerId"] = s.player_id;
-    json_res["name"] = room->players[s.player_id]->name;
-    json_res["is_ready"] = room->players[s.player_id]->is_ready;
+    json_res["playerId"] = player_id;
+    json_res["name"] = room->players[player_id]->name;
+    json_res["is_ready"] = room->players[player_id]->is_ready;
 
     std::string str_res = json_stringify(json_res);
 
     for (const auto &player : room->players)
-        if (player.first != s.player_id)
+        if (player.first != player_id)
             ps_service.publish(player.first, str_res);
 }
 
