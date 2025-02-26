@@ -239,8 +239,8 @@ void WebSocketChat::handleNewConnection(
         for (const auto player : room->players)
         {
             json_res["users"][idx]["id"] = player.second->id;
-            json_res["users"][idx]["id"] = player.second->name;
-            json_res["users"][idx]["id"] = player.second->is_ready;
+            json_res["users"][idx]["name"] = player.second->name;
+            json_res["users"][idx]["is_ready"] = player.second->is_ready;
 
             idx++;
         }
