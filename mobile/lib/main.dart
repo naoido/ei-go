@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:eigo/pages/barcode_scanner.dart';
+import 'package:eigo/pages/barcode_scanner_page.dart';
 
 
 void main() {
@@ -41,10 +41,11 @@ class MyHome extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text('英GO!!', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 40)),
+            const SizedBox(height: 20),
             _buildItem(
               context,
               'ルームに参加する',
-              const BarcodeScannerWithZoom(),
+              const BarcodeScannerPage(),
             ),
           ],
         ),

@@ -1,17 +1,18 @@
 import 'dart:async';
 
+import 'package:eigo/pages/standby_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-class BarcodeScannerWithZoom extends StatefulWidget {
-  const BarcodeScannerWithZoom({super.key});
+class BarcodeScannerPage extends StatefulWidget {
+  const BarcodeScannerPage({super.key});
 
   @override
-  State<BarcodeScannerWithZoom> createState() => _BarcodeScannerWithZoomState();
+  State<BarcodeScannerPage> createState() => _BarcodeScannerPageState();
 }
 
-class _BarcodeScannerWithZoomState extends State<BarcodeScannerWithZoom> {
+class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
   final MobileScannerController controller = MobileScannerController(
     torchEnabled: false,
   );
@@ -76,26 +77,10 @@ class _BarcodeScannerWithZoomState extends State<BarcodeScannerWithZoom> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => PopScope(
-          canPop: true, // TODO: 遷移先の実装ができたら消す
-          child: Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(barcodeValue)
-                ],
-              ),
-            ),
-          )
-        ),
+        builder: (context) => StandbyPage(barcodeValue: barcodeValue),
       ),
     ).then((_) {
-      setState(() {
-        _isProcessing = false;
-      });
+      _isProcessing = false;
     });
   }
 
