@@ -76,22 +76,24 @@ void WebSocketChat::handleNewMessage(
                 {
                     std::shared_ptr<Player> player = room->players[s.player_id];
                     player->is_ready = true;
+
+                    ps_service.publish(s.player_id, json_stringify(json_res));
+
+                    json_res["type"] = "update";
+                    json_res["playerId"] = s.player_id;
+                    json_res["is_ready"] = room->players[s.player_id]->is_ready;
+
+                    std::string str_res = json_stringify(json_res);
+
+                    for (const auto &player : room->players)
+                        if (player.second->id != s.player_id)
+                            ps_service.publish(player.second->id, str_res);
                 }
                 catch (...)
                 {
                 }
 
-                json_res["type"] = "update";
-                json_res["playerId"] = s.player_id;
-                json_res["is_ready"] = room->players[s.player_id]->is_ready;
-
-                std::string str_res = json_stringify(json_res);
-
-                for (const auto &player : room->players)
-                    ps_service.publish(player.second->id, str_res);
-
                 room->mtx.unlock();
-                ps_service.publish(s.player_id, json_stringify(json_res));
             }
         }
         else if (event_type == "gameStart")
@@ -148,14 +150,19 @@ void WebSocketChat::handleNewMessage(
                         Json::Value json_result;
                         json_result["type"] = "result";
 
-                        LOGGER("Stream", "Dev." << results.size());
-
                         for (int idx = 0; idx < results.size(); idx++)
                         {
-                            json_result["result"]["ranking"][idx]["id"] = results[idx].first;
-                            json_result["result"]["ranking"][idx]["name"] = room->players[results[idx].first]->name;
-                            json_result["result"]["ranking"][idx]["aiGuess"] = results[idx].second;
-                            json_result["result"]["ranking"][idx]["isCorrect"] = results[idx].second == room->question->answer;
+                            std::shared_ptr<Player> player = room->players[results[idx].first];
+                            std::string ai_guess = results[idx].second;
+
+                            if (ai_guess == room->question->answer)
+                                player->point += 10000 * std::exp(-0.1 * idx);
+
+                            json_result["result"]["ranking"][idx]["id"] = player->id;
+                            json_result["result"]["ranking"][idx]["name"] = player->name;
+                            json_result["result"]["ranking"][idx]["point"] = player->point;
+                            json_result["result"]["ranking"][idx]["aiGuess"] = ai_guess;
+                            json_result["result"]["ranking"][idx]["isCorrect"] = ai_guess == room->question->answer;
                         }
 
                         for (const auto result : results)
@@ -228,15 +235,21 @@ void WebSocketChat::handleNewConnection(
     const HttpRequestPtr &req,
     const WebSocketConnectionPtr &conn)
 {
-    std::string room_id = req->getParameter("roomId");
-    std::shared_ptr<Room> room = Room::get(room_id);
-    std::string player_id = room->join();
+    std::string room_id;
+    std::string player_id;
+    std::shared_ptr<Room> room;
 
     try
     {
+        req->getParameter("roomId");
+        room = Room::get(room_id);
+        player_id = room->join();
+
         Json::Value json_res;
         json_res["type"] = "gameJoined";
         json_res["playerId"] = player_id;
+
+        conn->send(json_stringify(json_res));
 
         int idx = 0;
         for (const auto player : room->players)
@@ -249,6 +262,20 @@ void WebSocketChat::handleNewConnection(
         }
 
         conn->send(json_stringify(json_res));
+
+        /* #-#-#-#-#-#  Notify other players  #-#-#-#-#-# */
+
+        Json::Value global_dispatch;
+        global_dispatch["type"] = "new_player";
+        global_dispatch["playerId"] = player_id;
+        global_dispatch["name"] = room->players[player_id]->name;
+        global_dispatch["is_ready"] = room->players[player_id]->is_ready;
+
+        std::string str_global_dispatch = json_stringify(global_dispatch);
+
+        for (const auto &player : room->players)
+            if (player.first != player_id)
+                ps_service.publish(player.first, str_global_dispatch);
     }
     catch (...)
     {
@@ -263,31 +290,30 @@ void WebSocketChat::handleNewConnection(
     Subscriber s;
     s.room_id = room_id;
     s.player_id = player_id;
-    s.sub_id = ps_service.subscribe(s.player_id, [conn](
-                                                     const std::string &topic,
-                                                     const std::string &message)
+    s.sub_id = ps_service.subscribe(s.player_id == "" ? Utils::gen_id() : s.player_id, [conn](
+                                                                                           const std::string &topic,
+                                                                                           const std::string &message)
                                     { conn->send(message); });
 
-    LOGGER("Stream", "sub ok. sub_id: " << s.sub_id);
+    LOGGER("Stream", "Subscribe sub_id: " << s.sub_id);
 
     conn->setContext(std::make_shared<Subscriber>(std::move(s)));
-
-    Json::Value json_res;
-    json_res["type"] = "new_player";
-    json_res["playerId"] = player_id;
-    json_res["name"] = room->players[player_id]->name;
-    json_res["is_ready"] = room->players[player_id]->is_ready;
-
-    std::string str_res = json_stringify(json_res);
-
-    for (const auto &player : room->players)
-        if (player.first != player_id)
-            ps_service.publish(player.first, str_res);
 }
 
 void WebSocketChat::handleConnectionClosed(const WebSocketConnectionPtr &conn)
 {
-    auto &s = conn->getContextRef<Subscriber>();
-    ps_service.unsubscribe(s.player_id, s.sub_id);
-    WARN_LOGGER("Stream", "Disconnected. \n  >> room_id: " << s.room_id << "\n  >> player_id: " << s.player_id);
+    try
+    {
+        auto &s = conn->getContextRef<Subscriber>();
+
+        if (s.player_id != "")
+        {
+            ps_service.unsubscribe(s.player_id, s.sub_id);
+            WARN_LOGGER("Stream", "Disconnected. \n  >> room_id: " << s.room_id << "\n  >> player_id: " << s.player_id);
+        }
+    }
+    catch (...)
+    {
+        ERR_LOGGER("Stream", "Some error occurred when disconnecting");
+    }
 }

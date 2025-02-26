@@ -12,6 +12,7 @@ public:
     std::string id;
     std::string name;
     bool is_ready;
+    int point;
 
     Player();
 

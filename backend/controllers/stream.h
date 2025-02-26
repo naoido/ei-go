@@ -3,6 +3,7 @@
 #include <drogon/WebSocketController.h>
 #include <drogon/PubSubService.h>
 #include <drogon/HttpAppFramework.h>
+#include <cmath>
 
 #include "json_utils.h"
 #include "logger.h"
