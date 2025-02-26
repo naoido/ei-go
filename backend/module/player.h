@@ -15,8 +15,6 @@ public:
     std::string name;
     bool is_ready;
 
-    std::string create();
-    std::string rename(std::string player_id, std::string name);
 
 private:
     static std::map<std::string, std::shared_ptr<Player>> player;
