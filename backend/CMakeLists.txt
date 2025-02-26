@@ -31,6 +31,7 @@ add_library(modules STATIC
   ${MODULE_DIR}/question.cc
   ${MODULE_DIR}/room.cc
   ${MODULE_DIR}/utils.cc
+  ${MODULE_DIR}/gemini.cc
 )
 target_include_directories(modules PRIVATE ${MODULE_DIR})
 target_link_libraries(modules PRIVATE Drogon::Drogon)
@@ -47,6 +48,12 @@ add_executable(${PROJECT_NAME} main.cc)
 find_package(Drogon CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE 
   Drogon::Drogon
+  modules
+)
+
+find_package(CURL REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+  CURL::libcurl
   modules
 )
 
