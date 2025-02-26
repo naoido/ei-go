@@ -16,7 +16,7 @@
             <v-card-title class="text-h2 text-center mb-10" style="font-style: italic;">
                 英GO!!
             </v-card-title>
-            <v-btn style="font-size: 30px;" height="60px" class="w-75 my-2" color="success" @click="onRoomClick">
+            <v-btn style="font-size: 30px;" height="60px" class="w-50 my-2" color="success" @click="onRoomClick">
                 ルーム作成
             </v-btn>
             <div class="d-flex justify-center align-center mt-5">
