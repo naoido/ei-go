@@ -1,8 +1,7 @@
 #include "room.h"
 #include "utils.h"
 
-
-std::pair<std::string, std::string> Room::create()
+std::shared_ptr<Room> Room::create()
 {
     std::string room_id = Utils::gen_id();
     std::string admin_token = Utils::gen_id();
@@ -18,19 +17,15 @@ std::pair<std::string, std::string> Room::create()
 
     rooms[room_id] = room;
 
-    return {room_id, admin_token};
+    return room;
 }
 
-std::string Room::join(const std::string room_id)
+std::string Room::join()
 {
-    mtx.lock();
+    std::shared_ptr<Player> player(new Player);
+    players.push_back(player);
 
-    std::string player_id = Player::create();
-    std::shared_ptr<Room> room = get(room_id);
-
-    room->players_id.push_back(player_id);
-
-    return;
+    return player->id;
 }
 
 std::shared_ptr<Room> Room::get(const std::string room_id)
@@ -39,17 +34,6 @@ std::shared_ptr<Room> Room::get(const std::string room_id)
         throw "TODO Err";
 
     return ROOMS[room_id];
-}
-
-void Room::change_state(const std::string room_id, GameState state)
-{
-    mtx.lock();
-
-    std::shared_ptr<Room> room = get(room_id);
-
-    room->state = state;
-
-    mtx.unlock();
 }
 
 void Room::dispose(const std::string room_id)
