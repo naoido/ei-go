@@ -1,18 +1,20 @@
+import 'dart:ffi';
+
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketService {
-  static final WebSocketService _instance = WebSocketService._internal();
+  static final WebSocketService _instance = WebSocketService();
   late final WebSocketChannel _channel;
   final String _wsUrl = "wss://hackz.naoido.com/ws";
 
   factory WebSocketService() => _instance;
 
-  WebSocketService._internal() {
+  Future initialize(String roomId) async {
     _channel = WebSocketChannel.connect(Uri.parse(_wsUrl));
+    await _channel.ready;
   }
 
   void sendMessage(String message) async {
-    await _channel.ready;
     if (_channel.closeCode == null) {
       _channel.sink.add(message);
       print("送信: $message");

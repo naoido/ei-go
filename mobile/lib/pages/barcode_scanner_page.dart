@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eigo/pages/standby_page.dart';
+import 'package:eigo/utils/websocket_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -65,7 +66,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
     );
   }
 
-  void _onBarcodeDetected(BarcodeCapture capture) {
+  void _onBarcodeDetected(BarcodeCapture capture) async {
     if (_isProcessing || capture.barcodes.isEmpty) return;
 
     setState(() {
@@ -74,6 +75,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
 
     final String barcodeValue = capture.barcodes.first.rawValue ?? 'Unknown';
 
+    await WebSocketService().initialize(barcodeValue);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

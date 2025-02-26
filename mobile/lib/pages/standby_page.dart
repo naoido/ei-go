@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:eigo/pages/answer_page.dart';
+import 'package:eigo/utils/websocket_manager.dart';
 import 'package:flutter/material.dart';
 
 class StandbyPage extends StatefulWidget {
@@ -11,6 +14,7 @@ class StandbyPage extends StatefulWidget {
 }
 
 class _StandbyPageState extends State<StandbyPage> {
+  final WebSocketService _webSocket = WebSocketService();
   final TextEditingController _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isReady = false;
@@ -24,6 +28,19 @@ class _StandbyPageState extends State<StandbyPage> {
 
   @override
   Widget build(BuildContext context) {
+    _webSocket.messages.listen((data) {
+      Map<String, dynamic> message = jsonDecode(data);
+      // TODO: 遷移条件のタイプを確定させる
+      if (message["type"] == "") {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => AnswerPage(word: "Swift", username: _controller.text, round: 0)
+            )
+        );
+      }
+    });
+
     return PopScope(
       canPop: false,
       child: GestureDetector(
@@ -67,6 +84,8 @@ class _StandbyPageState extends State<StandbyPage> {
                       }
 
                       _closeKeyboard();
+                      _webSocket.sendMessage('{"type":"updateName", "name": "${_controller.text}"}');
+                      _webSocket.sendMessage('{"type":"ready"}');
                       setState(() {
                         _isReady = true;
                       });
@@ -80,17 +99,6 @@ class _StandbyPageState extends State<StandbyPage> {
                       style: const TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
-                  TextButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => AnswerPage(word: "Swift", username: _controller.text, round: 0)
-                            )
-                        );
-                      },
-                      child: const Text("テスト")
-                  )
                 ],
               ),
             ),

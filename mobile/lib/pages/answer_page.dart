@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:confetti/confetti.dart';
@@ -70,37 +71,7 @@ class _AnswerPageState extends State<AnswerPage> {
 
             _status = _statusMessages[1];
           });
-
-          await Future.delayed(Duration(seconds: 1));
-          setState(() {
-            _result = Random().nextInt(2) == 0;
-            if (_result ?? false) _confettiController.play();
-            _resultMessage = _result ?? false ? _resultMessages[2]: _resultMessages[3];
-          });
-          await Future.delayed(Duration(seconds: 3));
-
-          setState(() {
-            _status = _statusMessages[0];
-
-            _textEditController.text = "";
-            _confettiController.stop();
-
-            _result = null;
-            _resultMessage = _resultMessages[0];
-            _waiting = false;
-          });
-
-          if (widget.round >= 4) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ResultPage())
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => AnswerPage(word: widget.word, username: widget.username, round: widget.round + 1))
-            );
-          }
+          _websocket.sendMessage('{"type": "answer", "answer": "${_textEditController.text}"}');
         },
         child: Text(
           _status,
@@ -145,6 +116,35 @@ class _AnswerPageState extends State<AnswerPage> {
 
   @override
   Widget build(BuildContext context) {
+    _websocket.messages.listen((data) {
+      Map<String, dynamic> json = jsonDecode(data);
+      // TODO: 判定後の処理を書く
+      switch (json["type"]) {
+        case "":
+          setState(() {
+            // TODO: _resultを取得する
+            // _result =
+            if (_result ?? false) _confettiController.play();
+            _resultMessage =
+            _result ?? false ? _resultMessages[2] : _resultMessages[3];
+          });
+        case "": // TODO: 終了条件を確認
+          _confettiController.stop();
+
+          if (widget.round >= 4) {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ResultPage())
+            );
+          } else {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => AnswerPage(word: widget.word, username: widget.username, round: widget.round + 1))
+            );
+          }
+      }
+    });
+
     return PopScope(
       canPop: false,
       child: GestureDetector(
