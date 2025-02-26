@@ -13,7 +13,7 @@ class Player
 public:
     std::string id;
     std::string name;
-    bool isReady;
+    bool is_ready;
 
     std::string create();
     std::string rename(std::string player_id, std::string name);
