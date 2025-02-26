@@ -21,7 +21,7 @@
         <v-card class="d-flex justify-center align-center w-75 pa-5">
             <div class="d-flex flex-column justify-center align-center w-100">
                 <v-card-title class="text-h3">
-                    今回のお題(1/5)
+                    今回のお題({{ round }}/5)
                 </v-card-title>
                 <v-card-subtitle class="text-h2">
                     {{ title }}
@@ -30,19 +30,42 @@
             </div>
             <div class="d-flex flex-column justify-center align-center w-100 pl-16">
                 <v-card-title class="text-h4">
-                    ランキング
+                    プレイヤー
                 </v-card-title>
                 <v-sheet class="scrollable-list">
                     <transition-group name="list" tag="div">
                         <v-card
-                            v-for="item in users"
+                            v-for="(item, index) in getSortedUser()"
                             :key="item.username"
-                            class="d-flex align-center"
+                            class="d-flex align-center justify-space-between"
                             flat
-                        >
-                            <v-card-text style="font-size: 20px;">
-                                {{ item.username }}
-                            </v-card-text>
+                        >   
+                            <div class="d-flex justify-center align-center">
+                                <v-progress-circular
+                                    :indeterminate="true"
+                                    v-if="item.judging"
+                                    size="20"
+                                    color="blue-lighten-2"
+                                    class="my-2"
+                                />
+                                <v-icon v-else
+                                    :color="item.isSuccessed === null ? 'grey' : item.isSuccessed ? 'success' : 'error'"
+                                >
+                                    {{ item.isSuccessed == null ? "mdi-thought-bubble-outline" : item.isSuccessed ? "mdi-check-bold" : "mdi-close" }}
+                                </v-icon>
+                                <v-card-text style="font-size: 20px;">
+                                    {{ item.username }}
+                                </v-card-text>
+                                <v-icon 
+                                    v-if="index < 3"
+                                    :color="index === 0 ? 'yellow-darken-2' : index === 1 ? 'blue-grey-lighten-1' : 'brown-darken-2'"
+                                >
+                                    mdi-crown
+                                </v-icon>
+                            </div>
+                            <div>
+                                score: {{ item.score }}
+                            </div>
                         </v-card>
                     </transition-group>
                 </v-sheet>
@@ -57,6 +80,9 @@ import { ref, watchEffect } from 'vue';
 type User = {
     username: string,
     isReady: boolean,
+    judging: boolean,
+    score: number,
+    isSuccessed: boolean | null
 }
 
 type Answer = {
@@ -68,10 +94,12 @@ interface Props {
     roomId: string,
     users: User[],
     answer: Answer,
+    title: string,
+    round: number
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(["setAnswer"]);
+const emit = defineEmits(["setAnswer", "sortedUser"]);
 const dialog = ref(false);
 
 watchEffect(() => {
@@ -87,7 +115,7 @@ const set = () => {
         text: "If you're making an iOS app, what language do you use?"
     });
 }
-const title = ref("Swift");
+const getSortedUser = () => [...props.users].sort((a, b) => b.score - a.score);
 </script>
 
 <style scoped>
