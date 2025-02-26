@@ -11,22 +11,24 @@ services:
     networks:
       - app_network
 
-  # fastapi:
-  #   build: ./docker/voice
-  #   ports:
-  #     - "8080:8080"
-  #   networks:
-  #     - app_network
-
   dragon:
     build:
       context: ./backend
     ports:
       - "5173:5173"
-    environment:
-      - GEMINI_API_KEY=AIzaSyB6K-cE4foMusppkUQPh9g_UmORlrKnrew
+    env_file: 
+      - .env
     networks:
       - app_network
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    env_file:
+      - .env
+    depends_on:
+      nginx:
+        condition: service_healthy
 
 networks:
   app_network:
