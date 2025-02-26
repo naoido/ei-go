@@ -23,7 +23,7 @@ class Room
 public:
     RoomId id;
     GameState state;
-    std::vector<std::shared_ptr<Player>> players;
+    std::map<std::string, std::shared_ptr<Player>> players;
     std::string admin_token;
     std::mutex mtx_;
 
