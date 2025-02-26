@@ -1,4 +1,5 @@
 #include <drogon/drogon.h>
+#include "logger.h"
 
 using namespace drogon;
 
@@ -13,6 +14,8 @@ int main()
         {
             res->addHeader("Access-Control-Allow-Origin", "*");
         });
+    LOGGER("Main", "Listen 0.0.0.0:5173");
     drogon::app().run();
+
     return 0;
 }
