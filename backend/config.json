@@ -61,14 +61,7 @@
         "enabled_compressed_request": false
     },
     "plugins": [
-        {
-            "name": "drogon::plugin::PromExporter",
-            "dependencies": [],
-            "config": {
-                "path": "/metrics"
-            }
-        },
-        {
+       {
             "name": "drogon::plugin::AccessLogger",
             "dependencies": [],
             "config": {
