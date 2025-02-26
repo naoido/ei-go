@@ -48,6 +48,8 @@ void WebSocketChat::handleNewMessage(
                     json_res["isUpdated"] = false;
                 }
 
+                ps_service.publish(s.player_id, json_stringify(json_res));
+
                 json_res["type"] = "update";
                 json_res["playerId"] = s.player_id;
                 json_res["name"] = room->players[s.player_id]->name;
@@ -55,7 +57,8 @@ void WebSocketChat::handleNewMessage(
                 std::string str_res = json_stringify(json_res);
 
                 for (const auto &player : room->players)
-                    ps_service.publish(player.second->id, str_res);
+                    if (s.player_id != player.first)
+                        ps_service.publish(player.second->id, str_res);
 
                 room->mtx.unlock();
                 ps_service.publish(s.player_id, json_stringify(json_res));
