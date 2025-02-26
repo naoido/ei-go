@@ -13,8 +13,16 @@
             />
         </div>
         <Suspense>
-            <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" @append="append" />
-            <Playing v-else :users="users" :answer="answer" @setAnswer="setAnswer" />
+            <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" @append="append('aaa')" />
+            <Ranking v-else-if="isRanking" :users="users"/>
+            <Playing 
+              v-else 
+              :users="users" 
+              :answer="answer" 
+              :title="title" 
+              :round="round"
+              @setAnswer="setAnswer"
+            />
         </Suspense>
     </div>
 </template>
@@ -23,11 +31,38 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+type User = {
+    username: string,
+    isReady: boolean,
+    judging: boolean,
+    isSuccessed: boolean | null,
+    score: number,
+}
+
+type Answer = {
+    username: string,
+    text: string
+}
+
+const hogeAnswer = {
+    username: "naoido",
+    text: "If you're making an iOS app, what language do you use?"
+}
+
+const users = ref<User[]>([]);
+const answer = ref<Answer | null>(hogeAnswer);
+
 const route = useRoute();
-const isLoading = ref(true);
 const id = route.params.id;
 
+const isPlaying = ref(false);
+const isLoading = ref(true);
+const isRanking = ref(false);
 
+const title = ref("Swift");
+const round = ref(1);
+
+//** WEBSOCKET */
 const wsUrl = "ws://localhost:8080/ws";
 const ws = ref<WebSocket | null>(null);
 const messages = ref<string[]>([]);
@@ -71,38 +106,59 @@ onUnmounted(() => {
     ws.value.close();
   }
 });
+//** --- */
 
-
-type User = {
-    username: string,
-    isReady: boolean,
-}
-
-type Answer = {
-    username: string,
-    text: string
-}
-
-const hogeAnswer = {
-    username: "naoido",
-    text: "If you're making an iOS app, what language do you use?"
-}
-
-const answer = ref<Answer | null>(hogeAnswer);
 const setAnswer = (value: Answer | null) => answer.value = value;
+const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
+const getSortedUser = () => [...users.value].sort((a, b) => b.score - a.score);
 
-const users = ref<User[]>([
-    {username: "thirdlf", isReady: true},
-    {username: "naoido", isReady: true},
-    {username: "ei", isReady: true},
-]);
-
-const append = () => {
-    users.value.push({username: "ei", isReady: true})
+const append = (username: string) => {
+    users.value.push({
+      username: username,
+      isReady: false, 
+      judging: false, 
+      isSuccessed: null,
+      score: 0
+    });
 }
 
-const isPlaying = ref(false);
+const nextQuestion = (t: string) => {
+  title.value = t;
+  setAnswer(null);
+}
+
 const start = () => {
     isPlaying.value = true;
 }
+
+users.value = [
+    {
+      username: "thirdlf", 
+      isReady: true, 
+      judging: false, 
+      score: 80,
+      isSuccessed: null
+    },
+    {
+      username: "naoido", 
+      isReady: true, 
+      judging: true, 
+      score: 100,
+      isSuccessed: null
+    },
+    {
+      username: "ei", 
+      isReady: true, 
+      judging: false, 
+      score: 60,
+      isSuccessed: false
+    },
+    {
+      username: "eii",
+       isReady: true, 
+       judging: false, 
+       score: 70,
+      isSuccessed: true
+    },
+];
 </script>

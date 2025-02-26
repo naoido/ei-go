@@ -10,6 +10,7 @@ declare module 'vue' {
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     Home: typeof import('./src/components/Home.vue')['default']
     Playing: typeof import('./src/components/Playing.vue')['default']
+    Ranking: typeof import('./src/components/Ranking.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Standby: typeof import('./src/components/Standby.vue')['default']
