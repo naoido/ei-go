@@ -79,38 +79,6 @@ void WebSocketChat::handleNewMessage(
                 room->mtx.unlock();
             }
         }
-        else if (event_type == "ready")
-        {
-            Json::Value json_res;
-            json_res["type"] = "acceptedRaady";
-
-            if (room->state == GameState::Ready)
-            {
-                room->mtx.lock();
-                try
-                {
-                    std::shared_ptr<Player> player = room->players[s.player_id];
-                    player->is_ready = true;
-
-                    ps_service.publish(s.player_id, json_stringify(json_res));
-
-                    json_res["type"] = "update";
-                    json_res["playerId"] = s.player_id;
-                    json_res["is_ready"] = room->players[s.player_id]->is_ready;
-
-                    std::string str_res = json_stringify(json_res);
-
-                    for (const auto &player : room->players)
-                        if (player.second->id != s.player_id)
-                            ps_service.publish(player.second->id, str_res);
-                }
-                catch (...)
-                {
-                }
-
-                room->mtx.unlock();
-            }
-        }
         else if (event_type == "gameStart")
         {
             Json::Value json_res;
