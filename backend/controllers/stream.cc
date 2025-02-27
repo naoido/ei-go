@@ -173,6 +173,7 @@ void WebSocketChat::handleNewMessage(
 
                     if (room->question->questionNumber < MAX_ROUND)
                     {
+                        room->question->players_answer.clear();
                         room->question->next();
                         room->state = GameState::Ready;
                     }
