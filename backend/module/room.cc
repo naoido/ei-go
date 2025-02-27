@@ -63,7 +63,7 @@ bool Room::isAllPlayersReady()
     try
     {
         for (const auto &player : players)
-            if (!player.second->is_ready)
+            if (!(player.second->is_ready || player.second->is_host))
                 return false;
 
         mtx.unlock();
