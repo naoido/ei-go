@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  nginx:
+    build: 
+      context: ./web
+    ports:
+      - "80:80"
+    depends_on:
+      - dragon
+    networks:
+      - app_network
+
+  dragon:
+    build:
+      context: ./backend
+    ports:
+      - "5173:5173"
+    env_file: 
+      - .env
+    networks:
+      - app_network
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    env_file:
+      - .env
+    depends_on:
+      nginx:
+        condition: service_healthy
+
+networks:
+  app_network:
+    driver: bridge
