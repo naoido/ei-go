@@ -237,16 +237,16 @@ void WebSocketChat::handleNewConnection(
                     room->question->players_answer.erase(player_id);
                 }
 
-                room->players.erase(s.player_id);
+                room->players.erase(player_id);
 
                 Json::Value global_dispatch;
                 global_dispatch["type"] = "disconnection";
-                global_dispatch["playerId"] = s.player_id;
+                global_dispatch["playerId"] = player_id;
 
                 std::string str_global_dispatch = json_stringify(global_dispatch);
 
                 for (const auto &player : room->players)
-                    if (player.first != s.player_id)
+                    if (player.first != player_id)
                         ps_service.publish(player.first, str_global_dispatch);
             }
 
