@@ -158,6 +158,8 @@ void WebSocketChat::handleNewMessage(
 
                         if (answer.ai_guess == room->question->answer)
                             player->point += 10000 * std::exp(-0.1 * idx);
+                        
+                        player->is_ready = false;
 
                         dispatch_contents["result"]["ranking"][idx]["id"] = player->id;
                         dispatch_contents["result"]["ranking"][idx]["name"] = player->name;
