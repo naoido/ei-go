@@ -27,8 +27,9 @@ services:
     env_file:
       - .env
     depends_on:
-      nginx:
-        condition: service_healthy
+      - nginx
+    networks:
+      - app_network
 
 networks:
   app_network:

@@ -84,8 +84,7 @@ class _StandbyPageState extends State<StandbyPage> {
                       }
 
                       _closeKeyboard();
-                      _webSocket.sendMessage('{"type":"updateName", "name": "${_controller.text}"}');
-                      _webSocket.sendMessage('{"type":"ready"}');
+                      _webSocket.sendMessage('{"type":"update", "name": "${_controller.text}","isReady": true}');
                       setState(() {
                         _isReady = true;
                       });

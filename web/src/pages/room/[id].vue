@@ -13,7 +13,7 @@
             />
         </div>
         <Suspense>
-            <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" @append="append('aaa')" />
+            <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" />
             <Ranking v-else-if="isRanking" :users="users"/>
             <Playing 
               v-else 
@@ -32,16 +32,17 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 type User = {
-    username: string,
-    isReady: boolean,
-    judging: boolean,
-    isSuccessed: boolean | null,
-    score: number,
+  id: string,
+  username: string,
+  isReady: boolean,
+  judging: boolean,
+  isSuccessed: boolean | null,
+  score: number,
 }
 
 type Answer = {
-    username: string,
-    text: string
+  username: string,
+  text: string
 }
 
 const hogeAnswer = {
@@ -78,11 +79,15 @@ const connectWebSocket = () => {
     const data = JSON.parse(event.data);
     switch (data["type"]) {
       // TODO: 各レスポンス処理を実装する
-      case "":
-        
+      case "new_player":
+        append(data["playerId"], data["name"]);
         break;
-      case "":
-
+      case "update":
+        const user = users.value.find(u => u.id === data["playerId"]);
+        if (user) user.username = data["name"];
+        if(data["isReady"]) {
+          users.value.find(u => u.id === data["playerId"])!.isReady = true;
+        }
         break;
       case "":
         // 次のラウンドに移行
@@ -133,8 +138,9 @@ const setAnswer = (value: Answer | null) => answer.value = value;
 const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 const getSortedUser = () => [...users.value].sort((a, b) => b.score - a.score);
 
-const append = (username: string) => {
+const append = (id: string, username: string) => {
     users.value.push({
+      id: id,
       username: username,
       isReady: false, 
       judging: false, 
@@ -150,36 +156,6 @@ const nextQuestion = (t: string) => {
 
 const start = () => {
     isPlaying.value = true;
+    sendMessage(`{"type": "gameStart","admin_token": "${localStorage.getItem("admin_token")}"}`);
 }
-
-users.value = [
-    {
-      username: "thirdlf", 
-      isReady: true, 
-      judging: false, 
-      score: 80,
-      isSuccessed: null
-    },
-    {
-      username: "naoido", 
-      isReady: true, 
-      judging: true, 
-      score: 100,
-      isSuccessed: null
-    },
-    {
-      username: "ei", 
-      isReady: true, 
-      judging: false, 
-      score: 60,
-      isSuccessed: false
-    },
-    {
-      username: "eii",
-       isReady: true, 
-       judging: false, 
-       score: 70,
-      isSuccessed: true
-    },
-];
 </script>
