@@ -61,7 +61,7 @@ std::string Question::judge(std::string answer)
 {
     LOGGER("Question", "judge start.");
 
-    std::string prompt = "簡単な英語ゲームをしましょう ルールは簡単で私が文章を渡すのでその順序で_に入る単語を1つ回答しなさい また回答は単語のみ出力し改行空白は入れないでください (例: orange) " + answer;
+    std::string prompt = "簡単な英語ゲームをしましょう ルールは簡単で私が文章を渡すのでその順序で_に入る単語を1つ回答しなさい また回答は単語のみ出力し\"や改行空白は入れないでください (例: orange) " + answer;
 
     LOGGER("Question", "SendPrompt: " << prompt);
 
