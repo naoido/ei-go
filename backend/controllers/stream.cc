@@ -80,11 +80,8 @@ void WebSocketChat::handleNewMessage(
 
                             std::string dispatch_message = json_stringify(admin_dispatch);
 
-                            for (const auto player: room->players)
-                                if (player.second->is_host)
-                                {
-                                    ps_service.publish(player.first, dispatch_message);
-                                }
+                            for (const auto player : room->players)
+                                ps_service.publish(player.first, dispatch_message);
                         }
                     }
 
@@ -158,7 +155,7 @@ void WebSocketChat::handleNewMessage(
 
                         if (answer.ai_guess == room->question->answer)
                             player->point += 10000 * std::exp(-0.1 * idx);
-                        
+
                         player->is_ready = false;
 
                         dispatch_contents["result"]["ranking"][idx]["id"] = player->id;
