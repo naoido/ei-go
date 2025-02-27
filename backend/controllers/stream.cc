@@ -218,6 +218,7 @@ void WebSocketChat::handleNewConnection(
     const HttpRequestPtr &req,
     const WebSocketConnectionPtr &conn)
 {
+
     std::string room_id = req->getParameter("roomId");
     std::string player_id = req->getParameter("playerId");
     std::shared_ptr<Room> room;
@@ -227,6 +228,30 @@ void WebSocketChat::handleNewConnection(
     try
     {
         room = Room::get(room_id);
+
+        if (room->state != GameState::Ready)
+        {
+            if (player_id != "" && room->players.count(player_id))
+            {
+                if (room->question->players_answer.count(player_id)) {
+                    room->question->players_answer.erase(player_id);
+                }
+
+                room->players.erase(s.player_id);
+
+                Json::Value global_dispatch;
+                global_dispatch["type"] = "disconnection";
+                global_dispatch["playerId"] = s.player_id;
+
+                std::string str_global_dispatch = json_stringify(global_dispatch);
+
+                for (const auto &player : room->players)
+                    if (player.first != s.player_id)
+                        ps_service.publish(player.first, str_global_dispatch);
+            }
+
+            throw "Cannot connect to this room";
+        }
 
         /* #-#-#-#-#-# Reconnection process #-#-#-#-#-# */
         if (player_id != "")
@@ -264,10 +289,15 @@ void WebSocketChat::handleNewConnection(
         if (!is_reconnection)
         {
             Json::Value global_dispatch;
-            global_dispatch["type"] = "new_player";
-            global_dispatch["playerId"] = player_id;
-            global_dispatch["name"] = room->players[player_id]->name;
-            global_dispatch["is_ready"] = room->players[player_id]->is_ready;
+
+            if (room->state == GameState::Ready)
+            {
+
+                global_dispatch["type"] = "new_player";
+                global_dispatch["playerId"] = player_id;
+                global_dispatch["name"] = room->players[player_id]->name;
+                global_dispatch["is_ready"] = room->players[player_id]->is_ready;
+            }
 
             std::string str_global_dispatch = json_stringify(global_dispatch);
 
@@ -316,12 +346,22 @@ void WebSocketChat::handleConnectionClosed(const WebSocketConnectionPtr &conn)
 
                 if (room->players.count(s.player_id))
                 {
-                    room->players[s.player_id]->is_ready = false;
-
                     Json::Value global_dispatch;
-                    global_dispatch["type"] = "update";
-                    global_dispatch["playerId"] = s.player_id;
-                    global_dispatch["is_ready"] = false;
+
+                    if (room->state == GameState::Ready)
+                    {
+                        room->players[s.player_id]->is_ready = false;
+
+                        global_dispatch["type"] = "update";
+                        global_dispatch["playerId"] = s.player_id;
+                        global_dispatch["is_ready"] = false;
+                    }
+                    else
+                    {
+                        room->players.erase(s.player_id);
+                        global_dispatch["type"] = "disconnection";
+                        global_dispatch["playerId"] = s.player_id;
+                    }
 
                     std::string str_global_dispatch = json_stringify(global_dispatch);
 
