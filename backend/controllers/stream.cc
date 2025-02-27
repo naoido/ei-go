@@ -33,35 +33,50 @@ void WebSocketChat::handleNewMessage(
             Json::Value json_res;
             json_res["type"] = "acceptedUpdate";
 
+            Json::Value global_dispatch;
+            global_dispatch["type"] = "update";
+            global_dispatch["playerId"] = s.player_id;
+
             if (room->state == GameState::Ready)
             {
                 room->mtx.lock();
                 try
                 {
                     std::shared_ptr<Player> player = room->players[s.player_id];
-                    player->name = json_req["name"].asCString();
+
+                    if (json_req.isMember("name"))
+                    {
+                        std::string name = json_req["name"].asCString();
+
+                        player->name = name;
+                        global_dispatch["name"] = name;
+                    }
+
+                    if (json_req.isMember("isReady"))
+                    {
+                        bool is_ready = json_req["isReady"].asBool();
+
+                        player->is_ready = is_ready;
+                        global_dispatch["isReady"] = is_ready;
+                    }
 
                     json_res["isUpdated"] = true;
                 }
                 catch (...)
                 {
+                    ERR_LOGGER("Stream", "Update failed.");
                     json_res["isUpdated"] = false;
                 }
 
                 ps_service.publish(s.player_id, json_stringify(json_res));
 
-                json_res["type"] = "update";
-                json_res["playerId"] = s.player_id;
-                json_res["name"] = room->players[s.player_id]->name;
-
-                std::string str_res = json_stringify(json_res);
+                std::string str_global_dispatch = json_stringify(global_dispatch);
 
                 for (const auto &player : room->players)
                     if (s.player_id != player.first)
-                        ps_service.publish(player.second->id, str_res);
+                        ps_service.publish(player.second->id, str_global_dispatch);
 
                 room->mtx.unlock();
-                ps_service.publish(s.player_id, json_stringify(json_res));
             }
         }
         else if (event_type == "ready")
