@@ -5,19 +5,26 @@
 
 #include "gemini.h"
 
+#define MAX_ROUND 3
+
+struct PlayerAnswer {
+    std::string answer;
+    std::string ai_guess;
+    bool is_correct;
+};
 
 class Question
 {
 public:
     std::string answer;
-    std::map<std::string, std::string> players_answer;
+    std::map<std::string, PlayerAnswer> players_answer;
     int questionNumber = 0;
 
     Question();
 
     void next();
-    std::vector<std::pair<std::string, std::string>> judge();
+    std::string judge(std::string answer);
 
 private:
-    static const std::array<std::string, 300> nouns;
+    static const std::array<std::string, 4> nouns;
 };

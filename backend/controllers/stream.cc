@@ -118,84 +118,66 @@ void WebSocketChat::handleNewMessage(
         {
             if (room->state == GameState::AcceptingAnswers)
             {
+                std::string answer = json_req["answer"].asCString();
+                std::string ai_guess = room->question->judge(answer);
+
                 Json::Value json_res;
                 json_res["type"] = "acceptedAnswer";
+                json_res["aiGuess"] = ai_guess;
+                json_res["isCorrect"] = ai_guess == room->question->answer;
 
-                room->mtx.lock();
-                try
+                ps_service.publish(s.player_id, json_stringify(json_res));
+
+                room->question->players_answer[s.player_id] = PlayerAnswer{
+                    answer, ai_guess, (ai_guess == room->question->answer)};
+
+                int players_count = std::count_if(room->players.begin(), room->players.end(),
+                                                  [](const std::pair<const std::string, std::shared_ptr<Player>> &p)
+                                                  { return !p.second->is_host; });
+
+                if (players_count == room->question->players_answer.size())
                 {
-                    room->question->players_answer[s.player_id] = json_req["answer"].asCString();
-                    json_res["isAccepted"] = true;
+                    Json::Value dispatch_contents;
+                    dispatch_contents["type"] = "result";
 
-                    ps_service.publish(s.player_id, json_stringify(json_res));
-
-                    if (room->question->players_answer.size() == room->players.size())
+                    int idx = 0;
+                    for (const auto [player_id, answer] : room->question->players_answer)
                     {
-                        room->state = GameState::Judging;
+                        std::shared_ptr<Player> player = room->players[player_id];
 
-                        json_res["type"] = "state";
-                        json_res["state"] = "judging";
+                        if (answer.ai_guess == room->question->answer)
+                            player->point += 10000 * std::exp(-0.1 * idx);
+
+                        dispatch_contents["result"]["ranking"][idx]["id"] = player->id;
+                        dispatch_contents["result"]["ranking"][idx]["name"] = player->name;
+                        dispatch_contents["result"]["ranking"][idx]["point"] = player->point;
+                        dispatch_contents["result"]["ranking"][idx]["aiGuess"] = answer.ai_guess;
+                        dispatch_contents["result"]["ranking"][idx]["isCorrect"] = answer.ai_guess == room->question->answer;
+
+                        idx++;
+                    }
+
+                    std::string dispatch_message = json_stringify(dispatch_contents);
+
+                    global_dispatch(room->id, "", dispatch_message);
+
+                    if (room->question->questionNumber < MAX_ROUND)
+                    {
+                        room->question->next();
+                        room->state = GameState::Ready;
+                    }
+                    else
+                    {
+                        Json::Value json_res;
+                        json_res["type"] = "finish";
 
                         std::string dispatch_message = json_stringify(json_res);
 
                         global_dispatch(room->id, "", dispatch_message);
 
-                        std::vector<std::pair<std::string, std::string>> results = room->question->judge();
-
-                        Json::Value json_result;
-                        json_result["type"] = "result";
-
-                        for (int idx = 0; idx < results.size(); idx++)
-                        {
-                            std::shared_ptr<Player> player = room->players[results[idx].first];
-                            std::string ai_guess = results[idx].second;
-
-                            if (ai_guess == room->question->answer)
-                                player->point += 10000 * std::exp(-0.1 * idx);
-
-                            json_result["result"]["ranking"][idx]["id"] = player->id;
-                            json_result["result"]["ranking"][idx]["name"] = player->name;
-                            json_result["result"]["ranking"][idx]["point"] = player->point;
-                            json_result["result"]["ranking"][idx]["aiGuess"] = ai_guess;
-                            json_result["result"]["ranking"][idx]["isCorrect"] = ai_guess == room->question->answer;
-                        }
-
-                        for (const auto result : results)
-                        {
-                            json_result["result"]["isCorrect"] = result.second == room->question->answer;
-                            json_result["result"]["aiGuess"] = result.second;
-
-                            ps_service.publish(result.first, json_stringify(json_result));
-                        }
-
-                        if (room->question->questionNumber < 5)
-                        {
-                            room->question->next();
-                            room->state = GameState::Ready;
-                        }
-                        else
-                        {
-                            Json::Value json_res;
-                            json_res["type"] = "finish";
-
-                            std::string admin_token = json_req["admin_token"].asCString();
-
-                            if (room->state == GameState::Ready && admin_token == room->admin_token)
-                            {
-                                std::string dispatch_message = json_stringify(json_res);
-
-                                global_dispatch(room->id, "", dispatch_message);
-
-                                Room::dispose(room->id);
-                            }
-                        }
+                        Room::dispose(room->id);
                     }
                 }
-                catch (...)
-                {
-                    ERR_LOGGER("Stream", "judge err");
-                }
-                room->mtx.unlock();
             }
         }
         else if (event_type == "finish")
