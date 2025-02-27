@@ -1,7 +1,7 @@
 #pragma once
 
 /* ----- LOGGER macros declaration -----*/
-#define ERR_LOGGER( service, text ) std::cout << es_red << "ERR [" << service << " Service - " << __func__ << "]: " << es_reset << text << std::endl
+#define ERR_LOGGER( service, text ) std::cout << es_red << "ERR  [" << service << " Service - " << __func__ << "]: " << es_reset << text << std::endl
 #define WARN_LOGGER( service, text ) std::cout << es_yellow << "WARN [" << service << " Service - " << __func__ << "]: " << es_reset << text << std::endl
 #define LOGGER( service, text ) std::cout << es_blue << "INFO [" << service << " Service - " << __func__ << "]: " << es_reset << text << std::endl
 

@@ -37,7 +37,7 @@ std::shared_ptr<Room> Room::get(const std::string &room_id)
 {
     if (!(rooms.count(room_id))) {
         ERR_LOGGER("Room", "invalid id");
-        throw "TODO Err";
+        throw "invalid id";
     }
 
     return rooms[room_id];
