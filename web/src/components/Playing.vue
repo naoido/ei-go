@@ -21,7 +21,7 @@
         <v-card class="d-flex justify-center align-center w-75 pa-5">
             <div class="d-flex flex-column justify-center align-center w-100">
                 <v-card-title class="text-h3">
-                    今回のお題({{ round }}/5)
+                    今回のお題({{ round }}/3)
                 </v-card-title>
                 <v-card-subtitle class="text-h2">
                     {{ title }}
@@ -56,12 +56,6 @@
                                 <v-card-text style="font-size: 20px;">
                                     {{ item.username }}
                                 </v-card-text>
-                                <v-icon 
-                                    v-if="index < 3"
-                                    :color="index === 0 ? 'yellow-darken-2' : index === 1 ? 'blue-grey-lighten-1' : 'brown-darken-2'"
-                                >
-                                    mdi-crown
-                                </v-icon>
                             </div>
                             <div>
                                 score: {{ item.score }}

@@ -30,13 +30,12 @@ class _StandbyPageState extends State<StandbyPage> {
   Widget build(BuildContext context) {
     _webSocket.messages.listen((data) {
       Map<String, dynamic> message = jsonDecode(data);
-      // TODO: 遷移条件のタイプを確定させる
-      if (message["type"] == "") {
+      if (message["type"] == "question") {
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => AnswerPage(word: "Swift", username: _controller.text, round: 0)
-            )
+          context,
+          MaterialPageRoute(
+              builder: (context) => AnswerPage(word: message["question"], username: _controller.text, round: 0, rank: 1)
+          )
         );
       }
     });
@@ -84,8 +83,11 @@ class _StandbyPageState extends State<StandbyPage> {
                       }
 
                       _closeKeyboard();
-                      _webSocket.sendMessage('{"type":"updateName", "name": "${_controller.text}"}');
-                      _webSocket.sendMessage('{"type":"ready"}');
+                      _webSocket.sendMessage(jsonEncode({
+                        "type": "update",
+                        "name": _controller.text,
+                        "isReady": true,
+                      }));
                       setState(() {
                         _isReady = true;
                       });

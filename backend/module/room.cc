@@ -1,7 +1,6 @@
 #include "room.h"
 #include "question.h"
 
-
 std::shared_ptr<Room> Room::create()
 {
     std::string room_id = Utils::gen_id();
@@ -35,7 +34,8 @@ std::string Room::join()
 
 std::shared_ptr<Room> Room::get(const std::string &room_id)
 {
-    if (!(rooms.count(room_id))) {
+    if (!(rooms.count(room_id)))
+    {
         ERR_LOGGER("Room", "invalid id");
         throw "invalid id";
     }
@@ -63,8 +63,11 @@ bool Room::isAllPlayersReady()
     try
     {
         for (const auto &player : players)
-            if (!player.second->is_ready)
+            if (!(player.second->is_ready || player.second->is_host))
+            {
+                mtx.unlock();
                 return false;
+            }
 
         mtx.unlock();
         return true;

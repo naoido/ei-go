@@ -29,7 +29,7 @@
                     <transition-group name="list" tag="div">
                         <v-card
                             v-for="item in users"
-                            :key="item.username"
+                            :key="item.id"
                             class="d-flex align-center"
                             flat
                         >
@@ -42,9 +42,6 @@
                         </v-card>
                     </transition-group>
                 </v-sheet>
-                <v-btn @click="append">
-                    追加
-                </v-btn>
             </div>
         </v-card>
     </div>
@@ -55,6 +52,7 @@ import VueQrcode from "@chenfengyuan/vue-qrcode";
 import { ref } from "vue";
 
 type User = {
+    id: string,
     username: string,
     isReady: boolean,
 }
@@ -64,7 +62,7 @@ interface Props {
     users: User[]
 }
 
-const emit = defineEmits(["play", "append"]);
+const emit = defineEmits(["play"]);
 const props = defineProps<Props>();
 
 const roomId = props.roomId;
@@ -73,10 +71,6 @@ const isLoading = ref(false);
 
 const isReady = () => {
     return users.length > 1 && users.find(u => !u.isReady) == null
-}
-
-const append = () => {
-    emit("append");
 }
 
 const play = () => {

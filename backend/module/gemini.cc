@@ -45,14 +45,41 @@ std::string Gemini::req(std::string prompt)
         json_parse(response, response_data);
 
         std::string result = json_stringify(response["candidates"][0]["content"]["parts"][0]["text"]);
-        std::string target = "\\n";
 
-        size_t pos = result.find(target);
-        while (pos != std::string::npos)
         {
-            result.erase(pos, target.length());
-            pos = result.find(target);
+            std::string target = "\\n";
+            size_t pos = result.find(target);
+
+            while (pos != std::string::npos)
+            {
+                result.erase(pos, target.length());
+                pos = result.find(target);
+            }
         }
+
+        {
+            std::string target = "\n";
+            size_t pos = result.find(target);
+
+            while (pos != std::string::npos)
+            {
+                result.erase(pos, target.length());
+                pos = result.find(target);
+            }
+        }
+
+        {
+            std::string target = "\"";
+            size_t pos = result.find(target);
+
+            while (pos != std::string::npos)
+            {
+                result.erase(pos, target.length());
+                pos = result.find(target);
+            }
+        }
+
+        std::transform(result.begin(), result.end(), result.begin(), ::tolower);
 
         return result;
     }

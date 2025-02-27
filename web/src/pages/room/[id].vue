@@ -13,8 +13,8 @@
             />
         </div>
         <Suspense>
-            <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" @append="append('aaa')" />
-            <Ranking v-else-if="isRanking" :users="users"/>
+            <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" />
+            <Ranking v-else-if="isRanking" :users="users" :top="top"/>
             <Playing 
               v-else 
               :users="users" 
@@ -32,16 +32,17 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 type User = {
-    username: string,
-    isReady: boolean,
-    judging: boolean,
-    isSuccessed: boolean | null,
-    score: number,
+  id: string,
+  username: string,
+  isReady: boolean,
+  judging: boolean,
+  isSuccessed: boolean | null,
+  score: number,
 }
 
 type Answer = {
-    username: string,
-    text: string
+  username: string,
+  text: string
 }
 
 const hogeAnswer = {
@@ -58,12 +59,14 @@ const id = route.params.id;
 const isPlaying = ref(false);
 const isLoading = ref(true);
 const isRanking = ref(false);
+const top = ref([])
+const self = ref("");
 
 const title = ref("Swift");
 const round = ref(1);
 
 //** WEBSOCKET */
-const wsUrl = `wss://hackz.naoido.com/ws?roomId=${id}`;
+const wsUrl = `wss://hackz.naoido.com/ws?roomId=${id}&admin_token=${localStorage.getItem("admin_token")}`;
 const ws = ref<WebSocket | null>(null);
 
 const connectWebSocket = () => {
@@ -72,23 +75,36 @@ const connectWebSocket = () => {
   ws.value.onopen = () => {
     console.log("WebSocket 接続成功");
     isLoading.value = false;
+    sendMessage('{"type": "update","name": "brawser","isReady": true}')
   };
 
   ws.value.onmessage = (event: MessageEvent<string>) => {
     const data = JSON.parse(event.data);
     switch (data["type"]) {
-      // TODO: 各レスポンス処理を実装する
-      case "":
-        
+      case "new_player":
+        append(data["playerId"], data["name"]);
         break;
-      case "":
-
+      case "update":
+        const user = users.value.find(u => u.id === data["playerId"]);
+        if (user && data["name"]) user.username = data["name"];
+        if(data["isReady"]) {
+          users.value.find(u => u.id === data["playerId"])!.isReady = true;
+        }
         break;
-      case "":
-        // 次のラウンドに移行
+      case "gameJoined":
+        self.value = data["playerId"];
+        break;
+      case "result":
+        top.value = data.result.ranking.sort((a: any, b: any) => b.point - a.point).slice(0, 3);
+        break;
+      case "AllPlayersReady":
+        if(!isPlaying.value) return;
+        next();
+        break;
+      case "question":
         setAnswer(null);
         isLoading.value = false;
-        title.value = ""; // TODO: レスポンスの値を入れるようにする
+        title.value = data["question"];
         break;
       default:
         break;
@@ -113,9 +129,14 @@ const sendMessage = (value: string) => {
 };
 
 const next = async () => {
-  await sleep(3000);
-  sendMessage('{"type": "ready"}');
+  await sleep(2000);
+  if (round.value > 2) {
+    isRanking.value = true;
+    return;
+  }
   isLoading.value = true;
+  round.value++;
+  start();
 }
 
 onMounted(() => {
@@ -133,8 +154,9 @@ const setAnswer = (value: Answer | null) => answer.value = value;
 const sleep = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 const getSortedUser = () => [...users.value].sort((a, b) => b.score - a.score);
 
-const append = (username: string) => {
+const append = (id: string, username: string) => {
     users.value.push({
+      id: id,
       username: username,
       isReady: false, 
       judging: false, 
@@ -143,43 +165,8 @@ const append = (username: string) => {
     });
 }
 
-const nextQuestion = (t: string) => {
-  title.value = t;
-  setAnswer(null);
-}
-
 const start = () => {
     isPlaying.value = true;
+    sendMessage(`{"type": "gameStart","admin_token": "${localStorage.getItem("admin_token")}"}`);
 }
-
-users.value = [
-    {
-      username: "thirdlf", 
-      isReady: true, 
-      judging: false, 
-      score: 80,
-      isSuccessed: null
-    },
-    {
-      username: "naoido", 
-      isReady: true, 
-      judging: true, 
-      score: 100,
-      isSuccessed: null
-    },
-    {
-      username: "ei", 
-      isReady: true, 
-      judging: false, 
-      score: 60,
-      isSuccessed: false
-    },
-    {
-      username: "eii",
-       isReady: true, 
-       judging: false, 
-       score: 70,
-      isSuccessed: true
-    },
-];
 </script>
