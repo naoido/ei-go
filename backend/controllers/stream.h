@@ -35,6 +35,8 @@ public:
         const HttpRequestPtr &,
         const WebSocketConnectionPtr &) override;
 
+    void global_dispatch(std::string room_id, std::string ignore_player_id, std::string &message);
+
     WS_PATH_LIST_BEGIN
     WS_PATH_ADD("/api/stream", Get);
     WS_PATH_LIST_END

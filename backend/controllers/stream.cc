@@ -1,5 +1,20 @@
 #include "stream.h"
 
+void WebSocketChat::global_dispatch(std::string room_id, std::string ignore_player_id, std::string &message)
+{
+    try
+    {
+        std::shared_ptr<Room> room = Room::get(room_id);
+
+        for (const auto &player : room->players)
+            if (player.first != ignore_player_id)
+                ps_service.publish(player.first, message);
+    }
+    catch (...)
+    {
+    }
+}
+
 void WebSocketChat::handleNewMessage(
     const WebSocketConnectionPtr &wsConnPtr,
     std::string &&message,
@@ -33,9 +48,9 @@ void WebSocketChat::handleNewMessage(
             Json::Value json_res;
             json_res["type"] = "acceptedUpdate";
 
-            Json::Value global_dispatch;
-            global_dispatch["type"] = "update";
-            global_dispatch["playerId"] = s.player_id;
+            Json::Value dispatch_contents;
+            dispatch_contents["type"] = "update";
+            dispatch_contents["playerId"] = s.player_id;
 
             if (room->state == GameState::Ready)
             {
@@ -49,7 +64,7 @@ void WebSocketChat::handleNewMessage(
                         std::string name = json_req["name"].asCString();
 
                         player->name = name;
-                        global_dispatch["name"] = name;
+                        dispatch_contents["name"] = name;
                     }
 
                     if (json_req.isMember("isReady"))
@@ -57,7 +72,7 @@ void WebSocketChat::handleNewMessage(
                         bool is_ready = json_req["isReady"].asBool();
 
                         player->is_ready = is_ready;
-                        global_dispatch["isReady"] = is_ready;
+                        dispatch_contents["isReady"] = is_ready;
                     }
 
                     json_res["isUpdated"] = true;
@@ -70,11 +85,9 @@ void WebSocketChat::handleNewMessage(
 
                 ps_service.publish(s.player_id, json_stringify(json_res));
 
-                std::string str_global_dispatch = json_stringify(global_dispatch);
+                std::string dispatch_message = json_stringify(dispatch_contents);
 
-                for (const auto &player : room->players)
-                    if (s.player_id != player.first)
-                        ps_service.publish(player.second->id, str_global_dispatch);
+                global_dispatch(room->id, s.player_id, dispatch_message);
 
                 room->mtx.unlock();
             }
@@ -93,10 +106,10 @@ void WebSocketChat::handleNewMessage(
 
                 json_res["question"] = room->question->answer;
                 json_res["questionNumber"] = room->question->questionNumber;
-                std::string str_res = json_stringify(json_res);
 
-                for (const auto &player : room->players)
-                    ps_service.publish(player.second->id, str_res);
+                std::string dispatch_message = json_stringify(json_res);
+
+                global_dispatch(room->id, "", dispatch_message);
 
                 room->mtx.unlock();
             }
@@ -123,10 +136,9 @@ void WebSocketChat::handleNewMessage(
                         json_res["type"] = "state";
                         json_res["state"] = "judging";
 
-                        std::string str_res = json_stringify(json_res);
+                        std::string dispatch_message = json_stringify(json_res);
 
-                        for (const auto &player : room->players)
-                            ps_service.publish(player.second->id, str_res);
+                        global_dispatch(room->id, "", dispatch_message);
 
                         std::vector<std::pair<std::string, std::string>> results = room->question->judge();
 
@@ -170,10 +182,9 @@ void WebSocketChat::handleNewMessage(
 
                             if (room->state == GameState::Ready && admin_token == room->admin_token)
                             {
-                                std::string str_res = json_stringify(json_res);
+                                std::string dispatch_message = json_stringify(json_res);
 
-                                for (const auto &player : room->players)
-                                    ps_service.publish(player.second->id, str_res);
+                                global_dispatch(room->id, "", dispatch_message);
 
                                 Room::dispose(room->id);
                             }
@@ -196,10 +207,9 @@ void WebSocketChat::handleNewMessage(
 
             if (room->state == GameState::Ready && admin_token == room->admin_token)
             {
-                std::string str_res = json_stringify(json_res);
+                std::string dispatch_message = json_stringify(json_res);
 
-                for (const auto &player : room->players)
-                    ps_service.publish(player.second->id, str_res);
+                global_dispatch(room->id, "", dispatch_message);
 
                 Room::dispose(room->id);
             }
@@ -233,21 +243,20 @@ void WebSocketChat::handleNewConnection(
         {
             if (player_id != "" && room->players.count(player_id))
             {
-                if (room->question->players_answer.count(player_id)) {
+                if (room->question->players_answer.count(player_id))
+                {
                     room->question->players_answer.erase(player_id);
                 }
 
                 room->players.erase(player_id);
 
-                Json::Value global_dispatch;
-                global_dispatch["type"] = "disconnection";
-                global_dispatch["playerId"] = player_id;
+                Json::Value dispatch_contents;
+                dispatch_contents["type"] = "disconnection";
+                dispatch_contents["playerId"] = player_id;
 
-                std::string str_global_dispatch = json_stringify(global_dispatch);
+                std::string dispatch_message = json_stringify(dispatch_contents);
 
-                for (const auto &player : room->players)
-                    if (player.first != player_id)
-                        ps_service.publish(player.first, str_global_dispatch);
+                global_dispatch(room->id, player_id, dispatch_message);
             }
 
             throw "Cannot connect to this room";
@@ -288,22 +297,20 @@ void WebSocketChat::handleNewConnection(
         /* #-#-#-#-#-#  Notify other players  #-#-#-#-#-# */
         if (!is_reconnection)
         {
-            Json::Value global_dispatch;
+            Json::Value dispatch_contents;
 
             if (room->state == GameState::Ready)
             {
 
-                global_dispatch["type"] = "new_player";
-                global_dispatch["playerId"] = player_id;
-                global_dispatch["name"] = room->players[player_id]->name;
-                global_dispatch["is_ready"] = room->players[player_id]->is_ready;
+                dispatch_contents["type"] = "new_player";
+                dispatch_contents["playerId"] = player_id;
+                dispatch_contents["name"] = room->players[player_id]->name;
+                dispatch_contents["is_ready"] = room->players[player_id]->is_ready;
             }
 
-            std::string str_global_dispatch = json_stringify(global_dispatch);
+            std::string dispatch_message = json_stringify(dispatch_contents);
 
-            for (const auto &player : room->players)
-                if (player.first != player_id)
-                    ps_service.publish(player.first, str_global_dispatch);
+            global_dispatch(room->id, player_id, dispatch_message);
         }
     }
     catch (...)
@@ -346,28 +353,26 @@ void WebSocketChat::handleConnectionClosed(const WebSocketConnectionPtr &conn)
 
                 if (room->players.count(s.player_id))
                 {
-                    Json::Value global_dispatch;
+                    Json::Value dispatch_contents;
 
                     if (room->state == GameState::Ready)
                     {
                         room->players[s.player_id]->is_ready = false;
 
-                        global_dispatch["type"] = "update";
-                        global_dispatch["playerId"] = s.player_id;
-                        global_dispatch["is_ready"] = false;
+                        dispatch_contents["type"] = "update";
+                        dispatch_contents["playerId"] = s.player_id;
+                        dispatch_contents["is_ready"] = false;
                     }
                     else
                     {
                         room->players.erase(s.player_id);
-                        global_dispatch["type"] = "disconnection";
-                        global_dispatch["playerId"] = s.player_id;
+                        dispatch_contents["type"] = "disconnection";
+                        dispatch_contents["playerId"] = s.player_id;
                     }
 
-                    std::string str_global_dispatch = json_stringify(global_dispatch);
+                    std::string dispatch_message = json_stringify(dispatch_contents);
 
-                    for (const auto &player : room->players)
-                        if (player.first != s.player_id)
-                            ps_service.publish(player.first, str_global_dispatch);
+                    global_dispatch(room->id, s.player_id, dispatch_message);
                 }
             }
         }
