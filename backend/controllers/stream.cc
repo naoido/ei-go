@@ -73,6 +73,19 @@ void WebSocketChat::handleNewMessage(
 
                         player->is_ready = is_ready;
                         dispatch_contents["isReady"] = is_ready;
+
+                        if (room->isAllPlayersReady())
+                        {
+                            Json::Value dispatch_contents;
+                            dispatch_contents["type"] = "AllPlayersReady";
+                            
+                            std::string dispatch_message = json_stringify(dispatch_contents);
+
+                            for (const auto player: room->players)
+                                if (player.second->is_host) {
+                                    ps_service.publish(player.first, dispatch_message);
+                                }
+                        }
                     }
 
                     json_res["isUpdated"] = true;
@@ -213,6 +226,7 @@ void WebSocketChat::handleNewConnection(
 
     std::string room_id = req->getParameter("roomId");
     std::string player_id = req->getParameter("playerId");
+    std::string admin_token = req->getParameter("admin_token");
     std::shared_ptr<Room> room;
 
     bool is_reconnection = false;
@@ -257,6 +271,11 @@ void WebSocketChat::handleNewConnection(
         }
         else
             player_id = room->join();
+
+        if (admin_token == room->admin_token)
+        {
+            room->players[player_id]->is_host = true;
+        }
 
         Json::Value json_res;
         json_res["type"] = "gameJoined";
