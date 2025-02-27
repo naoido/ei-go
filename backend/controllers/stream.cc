@@ -54,7 +54,6 @@ void WebSocketChat::handleNewMessage(
 
             if (room->state == GameState::Ready)
             {
-                room->mtx.lock();
                 try
                 {
                     std::shared_ptr<Player> player = room->players[s.player_id];
@@ -74,15 +73,16 @@ void WebSocketChat::handleNewMessage(
                         player->is_ready = is_ready;
                         dispatch_contents["isReady"] = is_ready;
 
-                        if (room->isAllPlayersReady())
+                        if (is_ready && room->isAllPlayersReady())
                         {
-                            Json::Value dispatch_contents;
-                            dispatch_contents["type"] = "AllPlayersReady";
-                            
-                            std::string dispatch_message = json_stringify(dispatch_contents);
+                            Json::Value admin_dispatch;
+                            admin_dispatch["type"] = "AllPlayersReady";
+
+                            std::string dispatch_message = json_stringify(admin_dispatch);
 
                             for (const auto player: room->players)
-                                if (player.second->is_host) {
+                                if (player.second->is_host)
+                                {
                                     ps_service.publish(player.first, dispatch_message);
                                 }
                         }
@@ -101,8 +101,6 @@ void WebSocketChat::handleNewMessage(
                 std::string dispatch_message = json_stringify(dispatch_contents);
 
                 global_dispatch(room->id, s.player_id, dispatch_message);
-
-                room->mtx.unlock();
             }
         }
         else if (event_type == "gameStart")
