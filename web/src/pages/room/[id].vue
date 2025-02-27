@@ -14,7 +14,7 @@
         </div>
         <Suspense>
             <Standby v-if="!isPlaying" :roomId="id" :users="users" @play="start" />
-            <Ranking v-else-if="isRanking" :users="users"/>
+            <Ranking v-else-if="isRanking" :users="users" :top="top"/>
             <Playing 
               v-else 
               :users="users" 
@@ -59,13 +59,14 @@ const id = route.params.id;
 const isPlaying = ref(false);
 const isLoading = ref(true);
 const isRanking = ref(false);
+const top = ref([])
 const self = ref("");
 
 const title = ref("Swift");
 const round = ref(1);
 
 //** WEBSOCKET */
-const wsUrl = `wss://hackz.naoido.com/ws?roomId=${id}`;
+const wsUrl = `wss://hackz.naoido.com/ws?roomId=${id}&admin_token=${localStorage.getItem("admin_token")}`;
 const ws = ref<WebSocket | null>(null);
 
 const connectWebSocket = () => {
@@ -85,15 +86,21 @@ const connectWebSocket = () => {
         break;
       case "update":
         const user = users.value.find(u => u.id === data["playerId"]);
-        if (user) user.username = data["name"];
+        if (user && data["name"]) user.username = data["name"];
         if(data["isReady"]) {
           users.value.find(u => u.id === data["playerId"])!.isReady = true;
         }
         break;
       case "gameJoined":
         self.value = data["playerId"];
+        break;
       case "result":
+        top.value = data.result.ranking.sort((a: any, b: any) => b.point - a.point).slice(0, 3);
+        break;
+      case "AllPlayersReady":
+        if(!isPlaying.value) return;
         next();
+        break;
       case "question":
         setAnswer(null);
         isLoading.value = false;
@@ -123,7 +130,12 @@ const sendMessage = (value: string) => {
 
 const next = async () => {
   await sleep(2000);
+  if (round.value > 2) {
+    isRanking.value = true;
+    return;
+  }
   isLoading.value = true;
+  round.value++;
   start();
 }
 

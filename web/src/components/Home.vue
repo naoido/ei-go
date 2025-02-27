@@ -19,14 +19,6 @@
             <v-btn style="font-size: 30px;" height="60px" class="w-50 my-2" color="success" @click="onRoomClick">
                 ルーム作成
             </v-btn>
-            <div class="d-flex justify-center align-center mt-5">
-                <v-btn style="font-size: 30px;" height="60px" class="w-100 mx-2" color="indigo-accent-3">
-                    単語追加
-                </v-btn>
-                <v-btn style="font-size: 30px;" height="60px" class="w-100 mx-2" color="teal-lighten-1">
-                    一覧
-                </v-btn>
-            </div>
         </v-card>
     </div>
 </template>

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:confetti/confetti.dart';
-import 'package:eigo/pages/result_page.dart';
 import 'package:eigo/utils/websocket_manager.dart';
 import 'package:flutter/material.dart';
 
@@ -109,6 +108,12 @@ class _AnswerPageState extends State<AnswerPage> {
     );
   }
 
+  Future _transitionResult() async {
+    await Future.delayed(Duration(seconds: 3));
+    Navigator.popUntil(context, (route) => route.isFirst);
+    _confettiController.stop();
+  }
+
   @override
   void dispose() {
     _confettiController.dispose();
@@ -127,27 +132,27 @@ class _AnswerPageState extends State<AnswerPage> {
             if (_result ?? false) _confettiController.play();
             _resultMessage = _result ?? false ? _resultMessages[2] : _resultMessages[3];
           });
-          _websocket.sendMessage(jsonEncode({"type": "update", "isReady": true}));
         case "result":
+          if (widget.round >= 2) {
+            return;
+          }
           List<dynamic> rankingList = (json["result"]["ranking"] as List<dynamic>)
             ..sort((a, b) => b["point"].compareTo(a["point"]));
 
           int rank = rankingList.indexWhere((entity) => entity["id"] == _websocket.userId) + 1;
           widget.rank = rank > 0 ? rank : 0;
+          _websocket.sendMessage(jsonEncode({"type": "update", "isReady": true}));
+        case "AllPlayersReady":
+          if (widget.round >= 2) {
+            _transitionResult();
+            return;
+          }
         case "question":
           _confettiController.stop();
-
-          if (widget.round >= 2) {
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => ResultPage())
-            );
-          } else {
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => AnswerPage(word: widget.word, username: widget.username, round: widget.round + 1, rank: widget.rank))
-            );
-          }
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => AnswerPage(word: json["question"], username: widget.username, round: widget.round + 1, rank: widget.rank))
+          );
       }
     });
 
@@ -169,7 +174,7 @@ class _AnswerPageState extends State<AnswerPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          "ラウンド: ${widget.round + 1}/5",
+                          "ラウンド: ${widget.round + 1}/3",
                           style: TextStyle(
                               fontSize: 20
                           ),
