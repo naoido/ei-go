@@ -59,6 +59,7 @@ const id = route.params.id;
 const isPlaying = ref(false);
 const isLoading = ref(true);
 const isRanking = ref(false);
+const self = ref("");
 
 const title = ref("Swift");
 const round = ref(1);
@@ -73,12 +74,12 @@ const connectWebSocket = () => {
   ws.value.onopen = () => {
     console.log("WebSocket 接続成功");
     isLoading.value = false;
+    sendMessage('{"type": "update","name": "brawser","isReady": true}')
   };
 
   ws.value.onmessage = (event: MessageEvent<string>) => {
     const data = JSON.parse(event.data);
     switch (data["type"]) {
-      // TODO: 各レスポンス処理を実装する
       case "new_player":
         append(data["playerId"], data["name"]);
         break;
@@ -89,11 +90,14 @@ const connectWebSocket = () => {
           users.value.find(u => u.id === data["playerId"])!.isReady = true;
         }
         break;
-      case "":
-        // 次のラウンドに移行
+      case "gameJoined":
+        self.value = data["playerId"];
+      case "result":
+        next();
+      case "question":
         setAnswer(null);
         isLoading.value = false;
-        title.value = ""; // TODO: レスポンスの値を入れるようにする
+        title.value = data["question"];
         break;
       default:
         break;
@@ -118,9 +122,9 @@ const sendMessage = (value: string) => {
 };
 
 const next = async () => {
-  await sleep(3000);
-  sendMessage('{"type": "ready"}');
+  await sleep(2000);
   isLoading.value = true;
+  start();
 }
 
 onMounted(() => {
@@ -147,11 +151,6 @@ const append = (id: string, username: string) => {
       isSuccessed: null,
       score: 0
     });
-}
-
-const nextQuestion = (t: string) => {
-  title.value = t;
-  setAnswer(null);
 }
 
 const start = () => {

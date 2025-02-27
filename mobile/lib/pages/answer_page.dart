@@ -10,8 +10,9 @@ class AnswerPage extends StatefulWidget {
   final String word;
   final String username;
   final int round;
+  int rank;
 
-  const AnswerPage({super.key, required this.word, required this.username, required this.round});
+  AnswerPage({super.key, required this.word, required this.username, required this.round, required this.rank});
 
   @override
   State<StatefulWidget> createState() => _AnswerPageState();
@@ -24,8 +25,8 @@ class _AnswerPageState extends State<AnswerPage> {
   final _confettiController = ConfettiController(duration: Duration(days: 1));
   final List<String> _statusMessages = ["回答する", "待機中"];
   final List<String> _resultMessages = ["回答待ち", "判定中", "成功！", "失敗"];
-  int rank = 1;
   bool _waiting = false;
+  String? aiAnswer;
   bool? _result;
   String _resultMessage = "回答まち";
   String _status = "回答する";
@@ -118,20 +119,25 @@ class _AnswerPageState extends State<AnswerPage> {
   Widget build(BuildContext context) {
     _websocket.messages.listen((data) {
       Map<String, dynamic> json = jsonDecode(data);
-      // TODO: 判定後の処理を書く
       switch (json["type"]) {
-        case "":
+        case "acceptedAnswer":
           setState(() {
-            // TODO: _resultを取得する
-            // _result =
+            aiAnswer = json["aiGuess"];
+            _result = json["isCorrect"];
             if (_result ?? false) _confettiController.play();
-            _resultMessage =
-            _result ?? false ? _resultMessages[2] : _resultMessages[3];
+            _resultMessage = _result ?? false ? _resultMessages[2] : _resultMessages[3];
           });
-        case "": // TODO: 終了条件を確認
+          _websocket.sendMessage(jsonEncode({"type": "update", "isReady": true}));
+        case "result":
+          List<dynamic> rankingList = (json["result"]["ranking"] as List<dynamic>)
+            ..sort((a, b) => b["point"].compareTo(a["point"]));
+
+          int rank = rankingList.indexWhere((entity) => entity["id"] == _websocket.userId) + 1;
+          widget.rank = rank > 0 ? rank : 0;
+        case "question":
           _confettiController.stop();
 
-          if (widget.round >= 4) {
+          if (widget.round >= 2) {
             Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => ResultPage())
@@ -139,7 +145,7 @@ class _AnswerPageState extends State<AnswerPage> {
           } else {
             Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => AnswerPage(word: widget.word, username: widget.username, round: widget.round + 1))
+                MaterialPageRoute(builder: (context) => AnswerPage(word: widget.word, username: widget.username, round: widget.round + 1, rank: widget.rank))
             );
           }
       }
@@ -176,11 +182,11 @@ class _AnswerPageState extends State<AnswerPage> {
                         Icon(
                           Icons.emoji_events,
                           size: 40,
-                          color: rank == 1 ? Colors.yellow :
-                            rank == 2 ? Color.fromARGB(255, 200, 200, 200) :
-                            rank == 3 ? Colors.brown : Colors.grey,
+                          color: widget.rank == 1 ? Colors.yellow :
+                            widget.rank == 2 ? Color.fromARGB(255, 200, 200, 200) :
+                            widget.rank == 3 ? Colors.brown : Colors.grey,
                         ),
-                        Text("$rank位"),
+                        Text("${widget.rank}位"),
                         const SizedBox(width: 10),
                         CircleAvatar(
                           radius: 24,
@@ -227,6 +233,14 @@ class _AnswerPageState extends State<AnswerPage> {
                         _submitButton()
                       ],
                     ),
+                    if (aiAnswer != null) Text(
+                      "AI: $aiAnswer",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+
+                        fontSize: 40
+                      ),
+                    )
                   ],
                 ),
               ),

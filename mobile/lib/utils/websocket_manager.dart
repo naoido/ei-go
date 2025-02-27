@@ -6,6 +6,7 @@ class WebSocketService {
   late WebSocketChannel _channel;
   final String _wsUrl = "wss://hackz.naoido.com/ws?roomId=";
   final StreamController _messageController = StreamController.broadcast();
+  String _userId = "";
 
   factory WebSocketService() => _instance;
 
@@ -13,8 +14,7 @@ class WebSocketService {
 
   Future<void> initialize(String roomId) async {
     _channel = WebSocketChannel.connect(Uri.parse(_wsUrl + roomId));
-    _channel.stream.listen(
-          (message) {
+    _channel.stream.listen((message) {
         _messageController.add(message);
       },
       onDone: () {
@@ -36,6 +36,11 @@ class WebSocketService {
   }
 
   Stream get messages => _messageController.stream;
+  String get userId => _userId;
+
+  void setUserId(String userId) {
+    _userId = userId;
+  }
 
   void closeConnection() {
     _channel.sink.close();
